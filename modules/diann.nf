@@ -354,12 +354,16 @@ process BLIB_BUILD_LIBRARY {
 
     script:
         """
-        # ensure the speclib has a filename that will allow BlibBuild to match the parquet file
-        f=\$(echo *.parquet.skyline.speclib)
-        newf="\${f%.parquet.skyline.speclib}-lib.parquet.skyline.speclib"
-        mv "\$f" "\$newf"
-
-        wine BlibBuild "\$newf" "${get_blib_name()}"
+        if ls *.parquet.skyline.speclib >/dev/null 2>&1; then
+            # DIA-NN 2.x: rename so BlibBuild matches the sibling .parquet report
+            f=\$(echo *.parquet.skyline.speclib)
+            newf="\${f%.parquet.skyline.speclib}-lib.parquet.skyline.speclib"
+            mv "\$f" "\$newf"
+            wine BlibBuild "\$newf" "${get_blib_name()}"
+        else
+            # DIA-NN 1.8.1: speclib is <report>.tsv.speclib alongside <report>.tsv
+            wine BlibBuild *.tsv.speclib "${get_blib_name()}"
+        fi
         """
 
     stub:
