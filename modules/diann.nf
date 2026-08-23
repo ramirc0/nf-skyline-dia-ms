@@ -129,7 +129,8 @@ process DIANN_SEARCH {
             exit 1
         fi
 
-        head -n 2 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
+        diann_version=\$(awk 'NR > 2 { exit } match(\$0, /[0-9]+(\\.[0-9]+)+/) { print substr(\$0, RSTART, RLENGTH); exit }' diann.stdout)
+        echo "diann_version=\${diann_version:-unknown}" > diann_version.txt
         ${generate_diann_output_file_stats_script(ms_files.toList(), output_report_name)}
         """
 
@@ -316,7 +317,8 @@ process DIANN_MBR {
             exit 1
         fi
 
-        head -n 2 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
+        diann_version=\$(awk 'NR > 2 { exit } match(\$0, /[0-9]+(\\.[0-9]+)+/) { print substr(\$0, RSTART, RLENGTH); exit }' diann.stdout)
+        echo "diann_version=\${diann_version:-unknown}" > diann_version.txt
         ${generate_diann_output_file_stats_script(ms_files.toList(), output_report_name)}
         """
 
