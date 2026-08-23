@@ -51,6 +51,10 @@ Step 2: Run the Build Script
 Run the script with the DIA-NN version number you want to use. You can find available
 versions at https://github.com/vdemichev/DiaNN/releases.
 
+The version number must match the release exactly. Note that the first 2.x release is
+numbered ``2.0``, not ``2.0.0``. If you give a version that does not exist, the script
+will tell you so before it starts building.
+
 For example, to build DIA-NN version 2.3.2:
 
 .. code-block:: bash

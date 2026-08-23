@@ -32,13 +32,15 @@ Arguments:
   <diann-version>  DIA-NN 2.x version to build (e.g., 2.3.2)
                    Must match a release at:
                    https://github.com/vdemichev/DiaNN/releases
+                   The number must match the release exactly: the first
+                   2.x release is "2.0", not "2.0.0".
 
 Options:
   -h, --help       Show this help message and exit
 
 Examples:
   $0 2.3.2
-  $0 2.0.0
+  $0 2.6.1
 EOF
     exit 0
 }
@@ -83,6 +85,43 @@ if ! wget -q -O "${BUILD_DIR}/entrypoint.sh" "${GITHUB_RAW_BASE}/entrypoint.sh";
     exit 1
 fi
 chmod +x "${BUILD_DIR}/entrypoint.sh"
+
+# Fail early, and with a useful message, if the requested version does not exist.
+# Without this the build gets as far as the download and dies inside Docker with
+# a wget exit code and no explanation. The download URL is derived from the
+# Dockerfile so the two cannot drift apart.
+URL_TEMPLATE=$(grep -m1 -oE 'https://github\.com/vdemichev/DiaNN/releases/download/[^[:space:]]+\.zip' \
+                    "${BUILD_DIR}/Dockerfile" || true)
+
+if [ -z "$URL_TEMPLATE" ]; then
+    echo "Warning: could not find the DIA-NN download URL in the Dockerfile."
+    echo "Skipping the version check and attempting the build anyway."
+else
+    ASSET_URL="${URL_TEMPLATE//\$\{DIANN_VERSION\}/${VERSION}}"
+    echo "Checking that DIA-NN ${VERSION} is available..."
+
+    # wget exits 8 when the server answers with an error (a 404 here means the
+    # version does not exist). Any other non-zero exit means we could not reach
+    # GitHub at all, which is not the user's version being wrong.
+    wget -q --spider "$ASSET_URL" && SPIDER_RC=0 || SPIDER_RC=$?
+
+    if [ "$SPIDER_RC" -ne 0 ] && [ "$SPIDER_RC" -ne 8 ]; then
+        echo "Warning: could not reach GitHub to check version ${VERSION}"
+        echo "(wget exit code ${SPIDER_RC}). Continuing with the build anyway."
+    elif [ "$SPIDER_RC" -eq 8 ]; then
+        echo "Error: no DIA-NN Linux release found for version '${VERSION}'."
+        echo ""
+        echo "Expected to find:"
+        echo "    ${ASSET_URL}"
+        echo ""
+        echo "Check the version number against the list of releases at:"
+        echo "    https://github.com/vdemichev/DiaNN/releases"
+        echo ""
+        echo "The number must match the release exactly. For example, the first"
+        echo "2.x release is '2.0', not '2.0.0'."
+        exit 1
+    fi
+fi
 
 echo "Building Docker image '${TAG}' for DIA-NN ${VERSION}..."
 echo "This may take a few minutes."
