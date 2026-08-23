@@ -217,6 +217,10 @@ This applies to ``quant_spectra_dir``, and (when configured) also to ``chromatog
 The match-between-runs step (``DIANN_MBR``) needs two or more runs to emit the spectral library used downstream;
 the workflow will fail with an explicit error naming which input(s) are too small when fewer files are supplied.
 
+.. note::
+
+    The workflow includes DIA-NN 1.8.1. To use a newer version of DIA-NN, see :doc:`custom_diann`.
+
 .. list-table:: Parameters for DIA-NN. All parameters in this section are optional.
    :widths: 20 80
    :header-rows: 1

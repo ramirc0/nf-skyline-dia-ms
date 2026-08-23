@@ -114,7 +114,8 @@ This directory contains the output of DIA-NN when ``search_engine = 'diann'``. T
 - ``*.speclib`` - The spectral library used (or predicted) by DIA-NN.
 - ``*.quant`` - Per-file DIA-NN quantification artifacts.
 - ``*.stdout`` / ``*.stderr`` - Command-line and error output for each DIA-NN step.
-- ``diann_version.txt`` - The version of DIA-NN used.
+- ``diann_version.txt`` - The version of DIA-NN used. The workflow includes DIA-NN 1.8.1 by default;
+  see :doc:`custom_diann` for how to use a newer version.
 
 When the Skyline branch is enabled, DIA-NN's results are also packaged into a ``.blib`` for Skyline import.
 
