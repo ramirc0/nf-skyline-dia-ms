@@ -66,11 +66,6 @@ workflow get_ms_files {
         // to `*.raw` against a directory of mzMLs) and we catch it before any process runs.
         check_local_only_batches_have_matches(spectra_dirs, spectra_dir_groups, local_matches, spectra_regex, allowed_extensions)
 
-        // Synchronous early-fail on duplicate file names among locally-resolved files, before
-        // msconvert is submitted. The channel-based validation barrier below repeats the check
-        // once Panorama listings complete, which is the only way to catch Panorama-only inputs.
-        check_unique_file_names(local_matches, param_label)
-
         // Find files in local directories matching spectra_regex
         if (local_matches) {
             sampled_local_files = local_matches
@@ -79,6 +74,12 @@ workflow get_ms_files {
                     sample_list(entries.collectMany { it[1] }, n_files, params.random_file_seed)
                         .collect { matched_file -> [batch, matched_file] }
                 }
+            // Synchronous early-fail on duplicate file names, before msconvert is submitted.
+            // Checked on the SAMPLED files, not every match: files_per_* may drop the duplicates,
+            // and this must agree with the channel-based barrier below, which sees the sampled
+            // set. That barrier repeats the check once Panorama listings complete, which is the
+            // only way to catch Panorama-only inputs.
+            check_unique_sampled_file_names(sampled_local_files, param_label)
             local_file_ch = sampled_local_files ? Channel.fromList(sampled_local_files) : Channel.empty()
         } else {
             local_file_ch = Channel.empty()
@@ -288,6 +289,15 @@ workflow get_ms_files {
 // opaque "input file name collision" from DIANN_MBR, long after input resolution. Duplicates
 // arise when two batches point at the same directory, or when one batch lists several
 // directories holding files of the same name.
+// Group a flat list of (batch, file) pairs and delegate. Kept at the top level so the
+// strict Nextflow 24 parser doesn't have to handle the closures inside a workflow `main:`.
+def check_unique_sampled_file_names(sampled_files, String param_label) {
+    def grouped = sampled_files
+        .groupBy { it[0] }
+        .collect { batch, pairs -> [batch, pairs.collect { it[1] }] }
+    check_unique_file_names(grouped, param_label)
+}
+
 def check_unique_file_names(entries, String param_label) {
     def batches_by_name = [:]
     entries.each { batch, files ->

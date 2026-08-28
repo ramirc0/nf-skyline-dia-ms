@@ -30,6 +30,7 @@ jobs:
           'test-diann-pdc-batches.config',
           'test-diann-pdc-batches-messy.config',
           'test-diann-batch-multidir.config',
+          'test-sampled-dup-names.config',
           'test-diann-filename-glob.config'
         ]
 
