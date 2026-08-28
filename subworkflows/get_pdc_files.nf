@@ -5,6 +5,7 @@ include { MSCONVERT_MULTI_BATCH as MSCONVERT } from "../modules/msconvert.nf"
 include { UNZIP_DIRECTORY as UNZIP_BRUKER_D } from "../modules/msconvert.nf"
 include { param_to_list } from "../modules/utils.nf"
 include { resolve_user_path } from "../modules/utils.nf"
+include { parse_batch_file } from "../modules/utils.nf"
 
 workflow get_pdc_study_metadata {
     main:
@@ -25,31 +26,6 @@ workflow get_pdc_study_metadata {
         study_name
         metadata
         annotations_csv
-}
-
-// Parse a batch file (TSV with columns: file_name, batch) into a map of filename -> batch_name
-def parse_batch_file(batch_file_path) {
-    def batch_map = [:]
-    def f = resolve_user_path(batch_file_path, 'pdc.batch_file')
-    def lines = f.readLines()
-    if (lines.size() < 2) {
-        error "Batch file '${batch_file_path}' must have a header row and at least one data row."
-    }
-    def header = lines[0].split('\t')
-    def file_name_idx = header.findIndexOf { it.trim() == 'file_name' }
-    def batch_idx = header.findIndexOf { it.trim() == 'batch' }
-    if (file_name_idx < 0 || batch_idx < 0) {
-        error "Batch file '${batch_file_path}' must have 'file_name' and 'batch' columns."
-    }
-    lines[1..-1].each { line ->
-        def fields = line.split('\t')
-        def fname = fields[file_name_idx].trim()
-        def batch = fields[batch_idx].trim()
-        if (fname && batch) {
-            batch_map[fname] = batch
-        }
-    }
-    return batch_map
 }
 
 // Random sample helper. Defined at top-level (not inside workflow `main:`) so the strict

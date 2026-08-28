@@ -28,6 +28,8 @@ jobs:
           'test-msconvert-only-local.config',
           'test-diann-multi-batch-metadata.config',
           'test-diann-pdc-batches.config',
+          'test-diann-pdc-batches-messy.config',
+          'test-diann-batch-multidir.config',
           'test-diann-filename-glob.config'
         ]
 
@@ -54,21 +56,32 @@ jobs:
       fail-fast: false
       matrix:
         nextflow-version: ['24.10.5', '25.10.4', '26.04.0']
-        include:
+        # NOTE: `case` is a real matrix axis, not `include:`. Two `include:` entries that both
+        # set `config` overwrite each other instead of adding a case, which would silently drop
+        # coverage as cases are added.
+        case:
           - config: 'test-bad-chromatogram-dir.config'
             expect: 'Parameter `chromatogram_library_spectra_dir` resolved to the filesystem root'
+          - config: 'test-batch-name-invalid.config'
+            expect: 'Parameter `quant_spectra_dir` contains an invalid batch name'
+          - config: 'test-batch-duplicate-files.config'
+            expect: 'Parameter `quant_spectra_dir` resolved multiple spectra files with the same name'
+          - config: 'test-pdc-batch-file-short-row.config'
+            expect: 'Parameter `pdc.batch_file`: line 3 of'
+          - config: 'test-pdc-batch-file-empty.config'
+            expect: 'Parameter `pdc.batch_file` is set but empty'
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Expect failure (nf ${{ matrix.nextflow-version }} / ${{ matrix.config }})
+    - name: Expect failure (nf ${{ matrix.nextflow-version }} / ${{ matrix.case.config }})
       env:
         NXF_VER: ${{ matrix.nextflow-version }}
-        CONFIG: ${{ matrix.config }}
+        CONFIG: ${{ matrix.case.config }}
         # Passed via env (not inlined into the script) so backticks in the fragment are
         # treated as literal text rather than shell command substitution.
-        EXPECT: ${{ matrix.expect }}
+        EXPECT: ${{ matrix.case.expect }}
       run: |
         echo "Installing Nextflow ${NXF_VER}:"
         curl -s https://get.nextflow.io | bash

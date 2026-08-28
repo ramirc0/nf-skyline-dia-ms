@@ -102,7 +102,11 @@ def get_n_files(files) {
  */
 def resolve_user_path(value, String label, Map opts = [:]) {
     def s = value?.toString()
-    if (s != null && s.contains('://')) {
+    if (s == null || s.trim().isEmpty()) {
+        // Checked before file(), which throws its own unattributed error on an empty string.
+        error "Parameter `${label}` is set but empty. Set it to an actual path or remove it."
+    }
+    if (s.contains('://')) {
         // Remote input -- preserve Nextflow's existing behavior.
         return file(value, checkIfExists: true)
     }
@@ -136,4 +140,102 @@ def list_user_dir(value, String label) {
     } catch (java.nio.file.AccessDeniedException e) {
         error "Parameter `${label}` could not be listed -- permission denied at ${e.message} (value: \"${value}\")."
     }
+}
+
+/**
+ * Validate user-supplied batch names.
+ *
+ * Batch names become filename components (`<document_name>_<batch>.sky.zip`), so a name
+ * containing a path separator produces an unwritable path and fails deep inside a Skyline
+ * process. Reject the shapes that break rather than silently rewriting the user's names.
+ * Spaces inside a name are allowed.
+ *
+ * @param names The batch names to check.
+ * @param label The parameter the names came from, shown in error messages.
+ */
+def validate_batch_names(names, String label) {
+    names.each { name ->
+        if (name == null || name.toString().trim().isEmpty()) {
+            error "Parameter `${label}` contains an empty batch name. Every batch must have a name."
+        }
+        def n = name.toString()
+        if (n != n.trim()) {
+            error "Parameter `${label}` contains a batch name with leading or trailing whitespace " +
+                  "(value: \"${n}\"). Remove the surrounding whitespace."
+        }
+        if (n.contains('/') || n.contains('\\')) {
+            error "Parameter `${label}` contains an invalid batch name: \"${n}\".\n" +
+                  "  Batch names become part of a file name (e.g. `final_${n}.sky.zip`), so they " +
+                  "cannot contain '/' or '\\'."
+        }
+        if (n.any { Character.isISOControl(it as char) }) {
+            error "Parameter `${label}` contains a batch name with control characters (value: \"${n}\").\n" +
+                  "  Batch names become part of a file name and must be printable text."
+        }
+    }
+}
+
+/**
+ * Parse a batch file: a TSV with `file_name` and `batch` columns assigning each file to a
+ * named batch. Blank lines are ignored so a trailing newline in a hand-edited file is not
+ * an error. Short or partially-filled rows are reported with their line number instead of
+ * failing with an IndexOutOfBoundsException.
+ *
+ * @param batch_file_path The configured path to the batch file.
+ * @param label The parameter the path came from, shown in error messages.
+ * @return A Map of file_name -> batch_name, in file order.
+ */
+def parse_batch_file(batch_file_path, String label = 'pdc.batch_file') {
+    def f = resolve_user_path(batch_file_path, label)
+    def lines = f.readLines()
+    def data_lines = []
+    lines.eachWithIndex { line, idx ->
+        // idx is 0-based over all lines; report 1-based line numbers to the user.
+        if (line != null && !line.trim().isEmpty()) {
+            data_lines << [idx + 1, line]
+        }
+    }
+    if (data_lines.size() < 2) {
+        error "Parameter `${label}` points to a batch file with no data rows " +
+              "(value: \"${batch_file_path}\"). It must have a header row and at least one data row."
+    }
+
+    def header = data_lines[0][1].split('\t')
+    def file_name_idx = header.findIndexOf { it.trim() == 'file_name' }
+    def batch_idx = header.findIndexOf { it.trim() == 'batch' }
+    if (file_name_idx < 0 || batch_idx < 0) {
+        error "Parameter `${label}` points to a batch file missing required columns " +
+              "(value: \"${batch_file_path}\"). It must have both a 'file_name' and a 'batch' column, " +
+              "found: [${header.collect{ it.trim() }.join(', ')}]."
+    }
+    def required_fields = Math.max(file_name_idx, batch_idx) + 1
+
+    def batch_map = [:]
+    data_lines.drop(1).each { entry ->
+        def line_no = entry[0]
+        def fields = entry[1].split('\t')
+        if (fields.size() < required_fields) {
+            error "Parameter `${label}`: line ${line_no} of \"${batch_file_path}\" has " +
+                  "${fields.size()} column(s) but ${required_fields} are required.\n" +
+                  "  Line: \"${entry[1]}\""
+        }
+        def fname = fields[file_name_idx].trim()
+        def batch = fields[batch_idx].trim()
+        if (fname.isEmpty()) {
+            error "Parameter `${label}`: line ${line_no} of \"${batch_file_path}\" has an empty 'file_name'."
+        }
+        if (batch.isEmpty()) {
+            error "Parameter `${label}`: line ${line_no} of \"${batch_file_path}\" has an empty 'batch' " +
+                  "for file '${fname}'."
+        }
+        if (batch_map.containsKey(fname) && batch_map[fname] != batch) {
+            error "Parameter `${label}`: file '${fname}' is assigned to more than one batch " +
+                  "('${batch_map[fname]}' and '${batch}') in \"${batch_file_path}\"."
+        }
+        batch_map[fname] = batch
+    }
+
+    // .toList() first: values() is an unmodifiable view and Groovy's unique() mutates in place.
+    validate_batch_names(batch_map.values().toList().unique(), label)
+    return batch_map
 }

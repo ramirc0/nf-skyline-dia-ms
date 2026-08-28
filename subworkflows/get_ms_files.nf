@@ -66,6 +66,11 @@ workflow get_ms_files {
         // to `*.raw` against a directory of mzMLs) and we catch it before any process runs.
         check_local_only_batches_have_matches(spectra_dirs, spectra_dir_groups, local_matches, spectra_regex, allowed_extensions)
 
+        // Synchronous early-fail on duplicate file names among locally-resolved files, before
+        // msconvert is submitted. The channel-based validation barrier below repeats the check
+        // once Panorama listings complete, which is the only way to catch Panorama-only inputs.
+        check_unique_file_names(local_matches, param_label)
+
         // Find files in local directories matching spectra_regex
         if (local_matches) {
             sampled_local_files = local_matches
@@ -172,6 +177,7 @@ workflow get_ms_files {
                           "\nFound extension: '.${extensions[0]}'" +
                           "\nAllowed for this run: ${format_extension_list(allowed_extensions)}."
                 }
+                check_unique_file_names(entries, param_label)
                 true
             }
 
@@ -275,6 +281,33 @@ workflow get_ms_files {
         ms_file_ch
         converted_mzml_ch
         file_json
+}
+
+// Every resolved MS file must have a unique base name. Nextflow stages all of a batch's
+// files into one directory, so duplicates collide -- the symptom without this check is an
+// opaque "input file name collision" from DIANN_MBR, long after input resolution. Duplicates
+// arise when two batches point at the same directory, or when one batch lists several
+// directories holding files of the same name.
+def check_unique_file_names(entries, String param_label) {
+    def batches_by_name = [:]
+    entries.each { batch, files ->
+        files.each { f ->
+            def name = new File(f.toString()).name
+            batches_by_name.get(name, []) << batch
+        }
+    }
+    def duplicates = batches_by_name.findAll { name, batches -> batches.size() > 1 }
+    if (duplicates) {
+        def detail = duplicates.collect { name, batches ->
+            def where = batches.collect { it == null ? '(no batch)' : "batch '${it}'" }
+            "  ${name} -- matched ${batches.size()} times: ${where.join(', ')}"
+        }.join('\n')
+        error "Parameter `${param_label}` resolved multiple spectra files with the same name:\n" +
+              detail +
+              "\nMS file names must be unique across all batches and directories. Nextflow stages " +
+              "them into a shared directory, so duplicates collide (the search would fail later " +
+              "with an opaque \"input file name collision\")."
+    }
 }
 
 // Format a list of (batch, [dir, ...]) tuples as a multi-line listing of "<dir>/<regex>" lines,

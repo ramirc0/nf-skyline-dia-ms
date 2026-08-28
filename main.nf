@@ -26,6 +26,8 @@ include { BUILD_AWS_SECRETS } from "./modules/aws"
 // useful functions and variables
 include { param_to_list } from "./modules/utils.nf"
 include { resolve_user_path } from "./modules/utils.nf"
+include { parse_batch_file } from "./modules/utils.nf"
+include { validate_batch_names } from "./modules/utils.nf"
 
 // Check if old Skyline parameter variables are defined.
 // If the old variable is defnied, return the params value of the old variable,
@@ -110,13 +112,22 @@ workflow {
 
     // get raw/mzML files
     use_batch_mode = params.quant_spectra_dir instanceof Map || params.pdc.batch_file != null
+
+    // Resolve and validate batch definitions up front, before any input resolution runs, so a
+    // bad batch name or malformed batch file fails before the first file is listed or converted.
+    pdc_batch_map = params.pdc.batch_file == null ? null
+                                                 : parse_batch_file(params.pdc.batch_file, 'pdc.batch_file')
+    if(params.quant_spectra_dir instanceof Map) {
+        validate_batch_names(params.quant_spectra_dir.collect{ k, v -> k }, 'quant_spectra_dir')
+    }
+
     quant_spectra_file_json = Channel.empty()
     if(params.pdc.study_id) {
         get_pdc_files()
         wide_ms_file_ch = get_pdc_files.out.wide_ms_file_ch
         wide_mzml_ch = get_pdc_files.out.converted_mzml_ch
         pdc_study_name = get_pdc_files.out.study_name
-        batch_name_list = get_pdc_batch_names(params.pdc.batch_file)
+        batch_name_list = pdc_batch_map == null ? [null] : pdc_batch_map.values().toList().unique().sort()
         if(params.skyline.document_name == 'final') {
             skyline_document_name = pdc_study_name
          } else {
@@ -376,19 +387,6 @@ def is_panorama_authentication_required() {
            (params.carafe.spectra_dir && any_entry_requires_panorama_auth(params.carafe.spectra_dir)) ||
            (params.skyline.skyr_file && any_entry_requires_panorama_auth(params.skyline.skyr_file))
 
-}
-
-// Extract unique sorted batch names from a PDC batch file, or [null] if no batch file
-def get_pdc_batch_names(batch_file_path) {
-    if (batch_file_path == null) return [null]
-    def f = resolve_user_path(batch_file_path, 'pdc.batch_file')
-    def lines = f.readLines()
-    def header = lines[0].split('\t')
-    def batch_idx = header.findIndexOf { it.trim() == 'batch' }
-    if (batch_idx < 0) {
-        error "Batch file '${batch_file_path}' must have a 'batch' column."
-    }
-    return lines[1..-1].collect { it.split('\t')[batch_idx].trim() }.unique().sort()
 }
 
 // Allowed MS-input extensions for the chosen search engine. EncyclopeDIA and Cascadia

@@ -65,6 +65,7 @@ The ``params`` Section
    * - ✓
      - ``quant_spectra_dir``
      - The path to the directory containing the raw data to be quantified. If using narrow window DIA and GPF to generated a chromatogram library this is the location of the wide-window data to be searched using the chromatogram library.
+       May also be a ``Map`` of batch name to directory (or to a list of directories) to run in multi-batch mode -- see :ref:`multi-batch mode <batch_names>`.
        Supported file formats are ``.mzML``, ``.raw`` (Thermo), ``.d.zip`` (Bruker), and pre-extracted ``.d`` directories (Bruker, local filesystem only). All matched files must share a single extension. Bruker ``.d.zip`` and ``.d`` are only compatible with ``search_engine = 'diann'`` or ``search_engine = null``; EncyclopeDIA and Cascadia do not read Bruker data. Pre-extracted ``.d`` directories (selected with a ``*.d`` glob) must be local — Panorama and Panorama Public Bruker inputs must be supplied as ``.d.zip`` archives.
    * -
      - ``quant_spectra_glob``
@@ -396,8 +397,40 @@ For example:
                            'Plate_2': '<path to mzML/raw files>']
     }
 
+A batch may draw its files from more than one directory. Give the batch a list of directories
+instead of a single one:
 
-**Note:** mzML/raw file names can not be duplicated in any batch. If there are duplicate file names the ``DIANN_MBR`` process will fail.
+.. code-block:: groovy
+
+    params {
+      quant_spectra_dir = ['Plate_1': ['<path to mzML/raw files>',
+                                       '<path to more mzML/raw files>'],
+                           'Plate_2': '<path to mzML/raw files>']
+    }
+
+Even a single batch activates multi-batch mode, so the batch name is appended to the document
+name: a ``Map`` with only ``'Plate_1'`` produces ``final_Plate_1.sky.zip``, not ``final.sky.zip``.
+
+**Note:** mzML/raw file names must be unique across every batch and every directory. Nextflow
+stages the files for a batch into a shared directory, so duplicate names collide. The workflow
+checks this while resolving inputs and stops with a message listing the duplicated names and the
+batches they came from, before any file is converted.
+
+.. _batch_names:
+
+Batch names
+===========
+
+Batch names become part of a file name (``<document_name>_<batch>.sky.zip``), so they are
+validated before the run starts. A batch name may not:
+
+- be empty or consist only of whitespace
+- begin or end with whitespace
+- contain ``/`` or ``\``
+- contain control characters
+
+Spaces inside a name are allowed, though ``_`` or ``-`` usually makes for easier handling
+downstream. The same rules apply to batch names in a ``pdc.batch_file``.
 
 Using ``pdc.batch_file`` for PDC runs
 =====================================
@@ -420,6 +453,10 @@ For PDC runs, multi-batch mode is activated by setting ``params.pdc.batch_file``
      - BatchB
 
 The workflow validates that all files in the batch file match files downloaded from the PDC study, and that all downloaded files appear in the batch file.
+
+Blank lines in the batch file are ignored, and leading/trailing whitespace around each field is
+trimmed, so a trailing newline or a little hand-editing untidiness is not an error. A row that is
+missing the ``batch`` or ``file_name`` field is reported with its line number.
 
 For example:
 

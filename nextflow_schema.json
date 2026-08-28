@@ -19,7 +19,17 @@
         {
           "type": "object",
           "additionalProperties": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
           }
         }
       ]
@@ -151,7 +161,8 @@
           "default": false
         },
         "batch_file": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
