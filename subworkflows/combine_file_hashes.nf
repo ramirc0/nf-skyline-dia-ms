@@ -50,7 +50,7 @@ workflow combine_file_hashes {
 
         // process skyline hash text files
         skyline_doc_data = final_skyline_file
-            .map{ it -> tuple(it.name, params.output_directories.skyline.import_spectra, it.size()) }
+            .map{ it -> tuple(it.name, params.output_directories.skyline.final_documents, it.size()) }
             .join(
                 final_skyline_hash.splitText().map{ it ->
                     def elems = it.trim().split('\t')

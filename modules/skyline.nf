@@ -127,7 +127,11 @@ process SKYLINE_IMPORT_MS_FILE {
 }
 
 process SKYLINE_MERGE_RESULTS {
-    publishDir params.output_directories.skyline.import_spectra, enabled: params.replicate_metadata == null && params.pdc.study_id == null, failOnError: true, mode: 'copy'
+    // The merged document is the final one only when neither the annotate nor the minimize
+    // step follows. Annotation runs when replicate metadata or PDC annotations are available;
+    // this mirrors the branch in subworkflows/skyline_import.nf.
+    publishDir params.output_directories.skyline.final_documents, pattern: '*.sky.zip', enabled: params.replicate_metadata == null && params.pdc.study_id == null && !params.skyline.minimize, failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.import_spectra, pattern: '*.{stdout,stderr,txt}', enabled: params.replicate_metadata == null && params.pdc.study_id == null, failOnError: true, mode: 'copy'
     cpus   32
     memory {
         def bytes   = get_total_file_sizes(skyd_files)
@@ -220,7 +224,8 @@ process ANNOTATION_TSV_TO_CSV {
 }
 
 process SKYLINE_MINIMIZE_DOCUMENT {
-    publishDir params.output_directories.skyline.minimize, failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.final_documents, pattern: '*.sky.zip', failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.minimize, pattern: '*.{stdout,stderr,txt}', failOnError: true, mode: 'copy'
     label 'error_retry'
     label 'process_high'
     label 'proteowizard'
@@ -261,7 +266,8 @@ process SKYLINE_MINIMIZE_DOCUMENT {
 }
 
 process SKYLINE_ANNOTATE_DOCUMENT {
-    publishDir params.output_directories.skyline.import_spectra, failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.final_documents, pattern: '*.sky.zip', enabled: !params.skyline.minimize, failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.import_spectra, pattern: '*.{stdout,stderr,txt}', failOnError: true, mode: 'copy'
     cpus   8
     memory { Math.max(12.0, (skyline_zipfile.size() / (1024 ** 3)) * 2).GB }
     time   { 4.h * task.attempt }

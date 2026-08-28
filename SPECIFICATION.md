@@ -508,6 +508,10 @@ If `params.skyline.skip` is false, the Skyline stage:
 - merges them into one document per batch or one document overall
 - annotates the document when replicate metadata or PDC annotations are available
 - optionally runs a minimize step
+- publishes the final document to `skyline/final_documents` from whichever of
+  `SKYLINE_MERGE_RESULTS`, `SKYLINE_ANNOTATE_DOCUMENT`, or `SKYLINE_MINIMIZE_DOCUMENT` is the
+  terminal step for that run; the non-terminal steps publish only their logs and hashes to
+  `skyline/import-spectra` or `skyline/minimize`, so no intermediate `.sky.zip` is published
 - optionally runs user-provided `.skyr` reports
 - optionally generates QC outputs from Skyline report exports
 
@@ -570,8 +574,9 @@ Important accuracy note:
 
 - this manifest is not a complete list of every published artifact in the repository
 - coverage depends on what each search branch includes in its `search_file_stats`
+- the final Skyline document is always covered, and its recorded path is
+  `skyline/final_documents` for every branch
 - currently omitted or inconsistently covered artifacts include:
-  - minimized Skyline documents
   - batch-report outputs
   - some search outputs such as final EncyclopeDIA combined outputs and Cascadia `.blib`
 
