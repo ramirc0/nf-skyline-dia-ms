@@ -160,9 +160,9 @@ process SKYLINE_MERGE_RESULTS {
 
     output:
         path("*.sky.zip"), emit: final_skyline_zipfile
-        path("skyline-merge.stdout"), emit: stdout
-        path("skyline-merge.stderr"), emit: stderr
-        path('output_file_hashes.txt'), emit: output_file_hashes
+        path("${skyline_document_name}.skyline-merge.stdout"), emit: stdout
+        path("${skyline_document_name}.skyline-merge.stderr"), emit: stderr
+        path("${skyline_document_name}.output_file_hashes.txt"), emit: output_file_hashes
 
     script:
 
@@ -187,16 +187,16 @@ process SKYLINE_MERGE_RESULTS {
         --save \
         --share-zip="${skyline_document_name}.sky.zip" \
         --share-type="complete" \
-        > >(tee 'skyline-merge.stdout') 2> >(tee 'skyline-merge.stderr' >&2)
+        > >(tee '${skyline_document_name}.skyline-merge.stdout') 2> >(tee '${skyline_document_name}.skyline-merge.stderr' >&2)
 
-    md5sum "${skyline_document_name}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
+    md5sum "${skyline_document_name}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${skyline_document_name}.output_file_hashes.txt"
     """
 
     stub:
     """
     touch "${skyline_document_name}.sky.zip"
-    touch "skyline-merge.stderr" "skyline-merge.stdout"
-    md5sum "${skyline_document_name}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
+    touch "${skyline_document_name}.skyline-merge.stderr" "${skyline_document_name}.skyline-merge.stdout"
+    md5sum "${skyline_document_name}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${skyline_document_name}.output_file_hashes.txt"
     """
 }
 
@@ -236,11 +236,16 @@ process SKYLINE_MINIMIZE_DOCUMENT {
 
     output:
         path("${sky_basename(skyline_zipfile)}_minimized.sky.zip"), emit: final_skyline_zipfile
-        path("*.stdout"), emit: stdout
-        path("*.stderr"), emit: stderr
-        path('output_file_hashes.txt'), emit: output_file_hashes
+        path("${sky_basename(skyline_zipfile)}_minimized.minimize_skyline.stdout"), emit: stdout
+        path("${sky_basename(skyline_zipfile)}_minimized.minimize_skyline.stderr"), emit: stderr
+        path("${sky_basename(skyline_zipfile)}_minimized.output_file_hashes.txt"), emit: output_file_hashes
 
     script:
+        // Every published file is named after the document it describes. In batch mode this
+        // process runs once per batch and all of them publish into the same directory, so
+        // fixed file names would overwrite each other.
+        out_basename = "${sky_basename(skyline_zipfile)}_minimized"
+
         """
         unzip ${skyline_zipfile}
 
@@ -248,21 +253,23 @@ process SKYLINE_MINIMIZE_DOCUMENT {
             --in="${skyline_zipfile.baseName}" \
             --chromatograms-discard-unused \
             --chromatograms-limit-noise=1 \
-            --out="${sky_basename(skyline_zipfile)}_minimized.sky" \
+            --out="${out_basename}.sky" \
             --save \
-            --share-zip="${sky_basename(skyline_zipfile)}_minimized.sky.zip" \
+            --share-zip="${out_basename}.sky.zip" \
             --share-type="minimal" \
-        > >(tee 'minimize_skyline.stdout') 2> >(tee 'minimize_skyline.stderr' >&2)
+        > >(tee '${out_basename}.minimize_skyline.stdout') 2> >(tee '${out_basename}.minimize_skyline.stderr' >&2)
 
-        md5sum "${sky_basename(skyline_zipfile)}_minimized.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
+        md5sum "${out_basename}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${out_basename}.output_file_hashes.txt"
         """
 
     stub:
-    """
-    touch "${sky_basename(skyline_zipfile)}_minimized.sky.zip"
-    touch stub.stdout stub.stderr
-    md5sum "${sky_basename(skyline_zipfile)}_minimized.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
-    """
+        out_basename = "${sky_basename(skyline_zipfile)}_minimized"
+
+        """
+        touch "${out_basename}.sky.zip"
+        touch "${out_basename}.minimize_skyline.stdout" "${out_basename}.minimize_skyline.stderr"
+        md5sum "${out_basename}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${out_basename}.output_file_hashes.txt"
+        """
 }
 
 process SKYLINE_ANNOTATE_DOCUMENT {
@@ -281,11 +288,16 @@ process SKYLINE_ANNOTATE_DOCUMENT {
 
     output:
         path("${sky_basename(skyline_zipfile)}_annotated.sky.zip"), emit: final_skyline_zipfile
-        path("*.stdout"), emit: stdout
-        path("*.stderr"), emit: stderr
-        path('output_file_hashes.txt'), emit: output_file_hashes
+        path("${sky_basename(skyline_zipfile)}_annotated.annotate_doc.stdout"), emit: stdout
+        path("${sky_basename(skyline_zipfile)}_annotated.annotate_doc.stderr"), emit: stderr
+        path("${sky_basename(skyline_zipfile)}_annotated.output_file_hashes.txt"), emit: output_file_hashes
 
     script:
+    // Every published file is named after the document it describes. In batch mode this
+    // process runs once per batch and all of them publish into the same directory, so
+    // fixed file names would overwrite each other.
+    out_basename = "${sky_basename(skyline_zipfile)}_annotated"
+
     """
     unzip ${skyline_zipfile}
 
@@ -293,20 +305,22 @@ process SKYLINE_ANNOTATE_DOCUMENT {
     echo '--in="${skyline_zipfile.baseName}"' > add_annotations.bat
     cat ${annotation_definitions} >> add_annotations.bat
     echo '--import-annotations="${annotation_csv}"' >> add_annotations.bat
-    echo '--save --out="${sky_basename(skyline_zipfile)}_annotated.sky"' >> add_annotations.bat
-    echo '--share-zip="${sky_basename(skyline_zipfile)}_annotated.sky.zip"' >> add_annotations.bat
+    echo '--save --out="${out_basename}.sky"' >> add_annotations.bat
+    echo '--share-zip="${out_basename}.sky.zip"' >> add_annotations.bat
 
     wine SkylineCmd --batch-commands=add_annotations.bat \
-        > >(tee 'annotate_doc.stdout') 2> >(tee 'annotate_doc.stderr' >&2)
+        > >(tee '${out_basename}.annotate_doc.stdout') 2> >(tee '${out_basename}.annotate_doc.stderr' >&2)
 
-    md5sum "${sky_basename(skyline_zipfile)}_annotated.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
+    md5sum "${out_basename}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${out_basename}.output_file_hashes.txt"
     """
 
     stub:
+    out_basename = "${sky_basename(skyline_zipfile)}_annotated"
+
     """
-    touch "${sky_basename(skyline_zipfile)}_annotated.sky.zip"
-    touch stub.stdout stub.stderr
-    md5sum "${sky_basename(skyline_zipfile)}_annotated.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > output_file_hashes.txt
+    touch "${out_basename}.sky.zip"
+    touch "${out_basename}.annotate_doc.stdout" "${out_basename}.annotate_doc.stderr"
+    md5sum "${out_basename}.sky.zip" | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\1\\t\\2/' > "${out_basename}.output_file_hashes.txt"
     """
 }
 
