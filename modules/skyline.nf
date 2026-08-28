@@ -130,8 +130,10 @@ process SKYLINE_MERGE_RESULTS {
     // The merged document is the final one only when neither the annotate nor the minimize
     // step follows. Annotation runs when replicate metadata or PDC annotations are available;
     // this mirrors the branch in subworkflows/skyline_import.nf.
+    // The logs and hashes are published unconditionally: the merge step runs on every Skyline
+    // run, so its output is always worth keeping.
     publishDir params.output_directories.skyline.final_documents, pattern: '*.sky.zip', enabled: params.replicate_metadata == null && params.pdc.study_id == null && !params.skyline.minimize, failOnError: true, mode: 'copy'
-    publishDir params.output_directories.skyline.import_spectra, pattern: '*.{stdout,stderr,txt}', enabled: params.replicate_metadata == null && params.pdc.study_id == null, failOnError: true, mode: 'copy'
+    publishDir params.output_directories.skyline.import_spectra, pattern: '*.{stdout,stderr,txt}', failOnError: true, mode: 'copy'
     cpus   32
     memory {
         def bytes   = get_total_file_sizes(skyd_files)
