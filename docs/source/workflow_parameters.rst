@@ -422,15 +422,22 @@ Batch names
 ===========
 
 Batch names become part of a file name (``<document_name>_<batch>.sky.zip``), so they are
-validated before the run starts. A batch name may not:
+checked before the run starts.
 
-- be empty or consist only of whitespace
-- begin or end with whitespace
+Leading and trailing whitespace is trimmed, so ``' Plate_1 '`` names the batch ``Plate_1``
+and produces ``final_Plate_1.sky.zip``. Because names are compared after trimming, two keys
+that differ only in surrounding whitespace are the same batch and are reported as a
+duplicate rather than one of them being silently dropped.
+
+After trimming, a batch name may not:
+
+- be empty
 - contain ``/`` or ``\``
 - contain control characters
 
-Spaces inside a name are allowed, though ``_`` or ``-`` usually makes for easier handling
-downstream. The same rules apply to batch names in a ``pdc.batch_file``.
+Spaces inside a name are kept, though ``_`` or ``-`` usually makes for easier handling
+downstream. The same rules apply to batch names in a ``pdc.batch_file``, whose fields are
+trimmed the same way.
 
 Using ``pdc.batch_file`` for PDC runs
 =====================================

@@ -28,6 +28,7 @@ include { param_to_list } from "./modules/utils.nf"
 include { resolve_user_path } from "./modules/utils.nf"
 include { parse_batch_file } from "./modules/utils.nf"
 include { validate_batch_names } from "./modules/utils.nf"
+include { normalize_batch_map } from "./modules/utils.nf"
 
 // Check if old Skyline parameter variables are defined.
 // If the old variable is defnied, return the params value of the old variable,
@@ -117,9 +118,10 @@ workflow {
     // bad batch name or malformed batch file fails before the first file is listed or converted.
     pdc_batch_map = params.pdc.batch_file == null ? null
                                                  : parse_batch_file(params.pdc.batch_file, 'pdc.batch_file')
-    if(params.quant_spectra_dir instanceof Map) {
-        validate_batch_names(params.quant_spectra_dir.collect{ k, v -> k }, 'quant_spectra_dir')
-    }
+
+    // Batch names are trimmed here and this one normalized value feeds both get_ms_files and
+    // batch_name_list, so the two can never disagree about a batch's name.
+    quant_spectra_dir = normalize_batch_map(params.quant_spectra_dir, 'quant_spectra_dir')
 
     quant_spectra_file_json = Channel.empty()
     if(params.pdc.study_id) {
@@ -138,7 +140,7 @@ workflow {
             params.quant_spectra_glob, params.quant_spectra_regex, 'quant_spectra'
         )
         get_wide_ms_files(
-            params.quant_spectra_dir,
+            quant_spectra_dir,
             quant_spectra_regex,
             params.files_per_quant_batch,
             aws_secret_id,
@@ -149,7 +151,7 @@ workflow {
         wide_mzml_ch = get_wide_ms_files.out.converted_mzml_ch
         quant_spectra_file_json = get_wide_ms_files.out.file_json
         pdc_study_name = null
-        batch_name_list = use_batch_mode ? params.quant_spectra_dir.collect{ k, v -> k } : [null]
+        batch_name_list = use_batch_mode ? quant_spectra_dir.collect{ k, v -> k } : [null]
         skyline_document_name = Channel.value(params.skyline.document_name)
     }
 

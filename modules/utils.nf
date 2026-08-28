@@ -148,7 +148,8 @@ def list_user_dir(value, String label) {
  * Batch names become filename components (`<document_name>_<batch>.sky.zip`), so a name
  * containing a path separator produces an unwritable path and fails deep inside a Skyline
  * process. Reject the shapes that break rather than silently rewriting the user's names.
- * Spaces inside a name are allowed.
+ * Spaces inside a name are allowed; callers trim surrounding whitespace before validating
+ * (see normalize_batch_map and parse_batch_file), so it never reaches here.
  *
  * @param names The batch names to check.
  * @param label The parameter the names came from, shown in error messages.
@@ -159,10 +160,6 @@ def validate_batch_names(names, String label) {
             error "Parameter `${label}` contains an empty batch name. Every batch must have a name."
         }
         def n = name.toString()
-        if (n != n.trim()) {
-            error "Parameter `${label}` contains a batch name with leading or trailing whitespace " +
-                  "(value: \"${n}\"). Remove the surrounding whitespace."
-        }
         if (n.contains('/') || n.contains('\\')) {
             error "Parameter `${label}` contains an invalid batch name: \"${n}\".\n" +
                   "  Batch names become part of a file name (e.g. `final_${n}.sky.zip`), so they " +
@@ -173,6 +170,40 @@ def validate_batch_names(names, String label) {
                   "  Batch names become part of a file name and must be printable text."
         }
     }
+}
+
+/**
+ * Normalize a batch map (e.g. params.quant_spectra_dir given as a Map): trim surrounding
+ * whitespace from every batch name and validate the result. Non-Map values pass through
+ * untouched, so callers can hand this any accepted quant_spectra_dir shape.
+ *
+ * Must be applied once and the result shared by every consumer of the map. get_ms_files keys
+ * its channels off these names and the Skyline document join matches on them, so trimming in
+ * one place and not another would surface as a join mismatch rather than a clear error.
+ *
+ * @param value The configured parameter value.
+ * @param label The parameter name shown in error messages.
+ * @return The map with trimmed batch names, or the original value if it is not a Map.
+ */
+def normalize_batch_map(value, String label) {
+    if (!(value instanceof Map)) {
+        return value
+    }
+    def normalized = [:]
+    value.each { k, v ->
+        def name = k == null ? '' : k.toString().trim()
+        if (name.isEmpty()) {
+            error "Parameter `${label}` contains an empty batch name. Every batch must have a name."
+        }
+        if (normalized.containsKey(name)) {
+            error "Parameter `${label}` contains the batch name '${name}' more than once. " +
+                  "Batch names are compared after trimming surrounding whitespace, so " +
+                  "'${name}' and ' ${name} ' are the same batch."
+        }
+        normalized[name] = v
+    }
+    validate_batch_names(normalized.keySet().toList(), label)
+    return normalized
 }
 
 /**

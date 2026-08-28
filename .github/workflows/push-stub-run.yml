@@ -31,6 +31,7 @@ jobs:
           'test-diann-pdc-batches-messy.config',
           'test-diann-batch-multidir.config',
           'test-sampled-dup-names.config',
+          'test-batch-name-whitespace.config',
           'test-diann-filename-glob.config'
         ]
 
@@ -71,6 +72,8 @@ jobs:
             expect: 'Parameter `pdc.batch_file`: line 3 of'
           - config: 'test-pdc-batch-file-empty.config'
             expect: 'Parameter `pdc.batch_file` is set but empty'
+          - config: 'test-batch-name-duplicate.config'
+            expect: 'Parameter `quant_spectra_dir` contains the batch name'
 
     steps:
     - name: Checkout repository
