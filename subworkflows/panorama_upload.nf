@@ -4,6 +4,19 @@
 include { UPLOAD_FILE } from "../modules/panorama"
 include { IMPORT_SKYLINE } from "../modules/panorama"
 
+// Write a record of every file this run uploads and where it went, to
+// <result_dir>/panorama/panorama_uploads.tsv. This is the companion to file_checksums.tsv:
+// without it nothing says what was sent to Panorama after the fact. It is also the only way
+// to check upload routing in a stub run, where the upload command itself never executes.
+def write_upload_manifest(upload_ch) {
+    return upload_ch
+        .map{ path, url -> "${file(path).name}\t${url}" }
+        .collectFile(name: 'panorama_uploads.tsv',
+                     storeDir: params.output_directories.panorama,
+                     seed: 'file\tdestination',
+                     sort: true, newLine: true)
+}
+
 workflow panorama_upload_results {
 
     take:
@@ -39,6 +52,8 @@ workflow panorama_upload_results {
             .concat(skyline_report_ch.map { path -> tuple(path, upload_webdav_url + "/results/skyline_reports") })
             .set { all_file_upload_ch }
 
+        upload_manifest = write_upload_manifest(all_file_upload_ch)
+
         UPLOAD_FILE(all_file_upload_ch, aws_secret_id)
 
         // will be used for state dependency -- pass this channel into any process that requires
@@ -62,6 +77,7 @@ workflow panorama_upload_results {
 
     emit:
         uploads_finished
+        upload_manifest
 }
 
 workflow panorama_upload_mzmls {
@@ -86,7 +102,12 @@ workflow panorama_upload_mzmls {
             .concat(Channel.fromPath(nextflow_config_file).map { path -> tuple(path, upload_webdav_url) })
             .set { all_file_upload_ch }
 
+        upload_manifest = write_upload_manifest(all_file_upload_ch)
+
         UPLOAD_FILE(all_file_upload_ch, aws_secret_id)
+
+    emit:
+        upload_manifest
 }
 
 def getUploadDirectory() {

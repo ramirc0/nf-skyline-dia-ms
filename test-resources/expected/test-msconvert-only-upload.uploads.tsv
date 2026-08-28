@@ -1,0 +1,9 @@
+file	destination
+nextflow_run_details.txt	<RUN>
+test-msconvert-only-upload.config	<RUN>
+test_narrow1.mzML	<RUN>/results/msconvert
+test_narrow2.mzML	<RUN>/results/msconvert
+test_wide1.mzML	<RUN>/results/msconvert
+test_wide2.mzML	<RUN>/results/msconvert
+test_wide3.mzML	<RUN>/results/msconvert
+test_wide4.mzML	<RUN>/results/msconvert

@@ -57,9 +57,13 @@ that will be found in those directories.
 
 ``panorama`` Subdirectory
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-This directory contains logs for file transfers from PanoramaWeb. There will be a ``*.stderr`` and ``*.stdout`` for
+This directory contains logs for file transfers to and from PanoramaWeb. There will be a ``*.stderr`` and ``*.stdout`` for
 each file that was transferred. Any errors encountered transferring that file will be present in the ``stderr`` file.
 And the command line output of the transfer program can be found in the ``stdout`` file.
+
+When ``panorama.upload`` is ``true``, this directory also contains:
+
+- ``panorama_uploads.tsv`` - A record of every file the run uploaded and the PanoramaWeb URL it was uploaded to. Use it to find where a particular result was sent.
 
 ``encyclopedia/convert-blib`` Subdirectory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -241,6 +245,10 @@ Inside that folder:
   versions, session ID, command line, input file names, and tool versions.
 - ``file_checksums.tsv`` - The MD5 hash, size, and output directory of each file the run produced.
 - The configuration file passed with ``-c``.
+
+    .. note::
+        A list of everything uploaded, with its destination, is written locally to
+        ``panorama/panorama_uploads.tsv``. It is not itself uploaded.
 
     .. warning::
         Your configuration file is uploaded as-is. If it contains an ``smtp.password`` (see the

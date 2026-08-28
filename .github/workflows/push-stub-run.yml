@@ -30,6 +30,10 @@ jobs:
           'test-diann-minimize.config',
           'test-diann-panorama-upload.config',
           'test-diann-pdc-upload.config',
+          'test-diann-upload-no-metadata.config',
+          'test-diann-upload-import-skyline.config',
+          'test-diann-upload-input-files.config',
+          'test-msconvert-only-upload.config',
           'test-diann-pdc-batches.config',
           'test-diann-pdc-batches-messy.config',
           'test-diann-batch-multidir.config',
@@ -51,6 +55,12 @@ jobs:
         chmod +x nextflow
         echo "Running Nextflow stub with config: ${{ matrix.config }}"
         ./nextflow run . -stub-run -c test-resources/${{ matrix.config }} -c test-resources/ci.config
+
+    # Configs that upload to Panorama record what they would have uploaded and where. Compare
+    # that against the checked-in manifest so any change to the upload set shows up here.
+    # Configs with no expected manifest are skipped by the script.
+    - name: Check Panorama uploads (${{ matrix.config }})
+      run: test-resources/check-upload-manifest.sh ${{ matrix.config }}
 
   # Negative tests: configs that must fail fast with a clear, parameter-attributed error
   # message (see modules/utils.nf resolve_user_path / list_user_dir). Each entry asserts the

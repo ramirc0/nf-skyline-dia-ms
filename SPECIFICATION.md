@@ -599,6 +599,15 @@ For full analysis runs, Panorama upload includes:
 - `results/skyline/`: final Skyline documents
 - `results/skyline_reports/`: Skyline report outputs
 
+`subworkflows/panorama_upload.nf` also writes `panorama_uploads.tsv` (file name, destination URL)
+to the local `panorama/` results directory, from the same channel that feeds `UPLOAD_FILE`. It is
+the record of what was uploaded, and it is what the stub tests assert against: the upload command
+itself never runs under `-stub-run`, so the manifest is the only observable form of the upload
+plan. `test-resources/check-upload-manifest.sh` compares it against the expected manifests in
+`test-resources/expected/`, with the per-run `nextflow/<timestamp>/<sessionId>` prefix normalized.
+Note that no stub test can cover the Panorama client itself -- argument handling, auth, or
+LabKey-side directory behavior.
+
 The `input-files/` set is intended to be everything needed to reproduce the run. Two details
 govern it:
 
