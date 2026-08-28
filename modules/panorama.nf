@@ -289,8 +289,11 @@ process UPLOAD_FILE {
 
     stub:
     """
-    touch "panorama-upload-${file(file_to_upload).name}.stdout" \
-          "panorama-upload-${file(file_to_upload).name}.stderr"
+    # Record the destination so stub runs can verify upload routing, which is otherwise
+    # invisible: the real command is skipped and the URL appears nowhere else.
+    echo "would upload ${file(file_to_upload).name} to ${web_dav_dir_url}" \
+        > "panorama-upload-${file(file_to_upload).name}.stdout"
+    touch "panorama-upload-${file(file_to_upload).name}.stderr"
     """
 }
 

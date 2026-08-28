@@ -48,15 +48,17 @@ workflow get_input_files {
             spectral_library = null
         }
 
+        // Always emitted as a channel, never a bare path: the template is both a process
+        // input and one of the files uploaded to Panorama, and only a channel can feed both.
         if(params.skyline.template_file != null) {
             if(panorama_auth_required_for_url(params.skyline.template_file)) {
                 PANORAMA_GET_SKYLINE_TEMPLATE(params.skyline.template_file, aws_secret_id)
-                skyline_template_zipfile = PANORAMA_GET_SKYLINE_TEMPLATE.out.panorama_file
+                skyline_template_zipfile = PANORAMA_GET_SKYLINE_TEMPLATE.out.panorama_file.first()
             } else {
-                skyline_template_zipfile = resolve_user_path(params.skyline.template_file, 'skyline.template_file')
+                skyline_template_zipfile = Channel.value(resolve_user_path(params.skyline.template_file, 'skyline.template_file'))
             }
         } else {
-            skyline_template_zipfile = file(params.default_skyline_template_file)
+            skyline_template_zipfile = Channel.value(file(params.default_skyline_template_file))
         }
 
         if(params.skyline.skyr_file != null) {

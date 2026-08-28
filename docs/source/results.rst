@@ -224,3 +224,50 @@ Created for PDC runs when ``pdc.gene_level_data`` is set and the QC step ran. Co
 ``aws`` Subdirectory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Present only on AWS Batch runs that need authenticated Panorama access. Contains logs from the secret-setup step that publishes the Panorama API key into AWS Secrets Manager.
+
+Results Uploaded to PanoramaWeb
+===============================
+When ``panorama.upload`` is ``true``, the workflow uploads a copy of the run to the WebDAV
+directory given by ``panorama.upload_url``. Each run gets its own folder, named for the time the
+upload started and the Nextflow session ID, so repeated runs never overwrite each other:
+
+.. code-block:: text
+
+    <panorama.upload_url>/nextflow/<YYYY-MM-DDTHH-mm-ss>/<session-id>/
+
+Inside that folder:
+
+- ``nextflow_run_details.txt`` - Provenance for the run: start time, Nextflow and workflow
+  versions, session ID, command line, input file names, and tool versions.
+- ``file_checksums.tsv`` - The MD5 hash, size, and output directory of each file the run produced.
+- The configuration file passed with ``-c``.
+
+    .. warning::
+        Your configuration file is uploaded as-is. If it contains an ``smtp.password`` (see the
+        email section of :doc:`workflow_parameters`) or any other credential, that value is
+        readable by anyone with access to the Panorama folder. Keep secrets in a separate config
+        file or in Nextflow secrets.
+
+- ``input-files/`` - The inputs needed to reproduce the run: the FASTA file (and the separate
+  Skyline FASTA, if ``skyline.fasta`` was set), the spectral library, the Skyline template
+  document, any ``.skyr`` files, and the replicate metadata. On PDC runs this holds the
+  annotations generated from the study metadata, along with ``pdc.batch_file``,
+  ``pdc.metadata_tsv``, and ``pdc.gene_level_data`` if you supplied them.
+- ``results/msconvert/`` - mzML files produced by msconvert, in a subdirectory per batch when
+  running in multi-batch mode. Files that did not need conversion are not uploaded, so this
+  directory is absent when the input was already mzML, when ``use_vendor_raw`` is ``true``, or
+  for Bruker ``.d`` input.
+- ``results/<search engine>/`` - The output of the search engine that ran.
+- ``results/skyline/`` - The final Skyline document, or one per batch in multi-batch mode.
+- ``results/skyline_reports/`` - The TSV output of any ``.skyr`` reports that were run.
+
+    .. note::
+        QC reports, batch reports, and gene reports are **not** uploaded. They are available only
+        in the local results directory described above.
+
+When ``msconvert_only`` is ``true``, the upload is much smaller: the resolved MS files go to
+``results/msconvert/`` (with no per-batch subdirectory), alongside the run details and the
+configuration file.
+
+Setting ``panorama.import_skyline`` additionally imports the uploaded Skyline document into
+PanoramaWeb's database for inline viewing; see :doc:`workflow_parameters`.

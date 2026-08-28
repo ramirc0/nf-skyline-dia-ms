@@ -308,18 +308,46 @@ workflow {
     // upload results to Panorama
     if(params.panorama.upload) {
 
+        // Everything a user needs to reproduce this run, uploaded to <run>/input-files.
+        // The search FASTA is not used here: on Cascadia runs it is a search product, and it
+        // is already uploaded to results/cascadia. What belongs here are the FASTAs the user
+        // supplied -- params.fasta and, when set, params.skyline.fasta.
+        panorama_input_files = get_input_files.out.fasta
+            .concat(get_input_files.out.skyline_fasta)
+            .unique()
+            .concat(spectral_library,
+                    skyr_file_ch,
+                    skyline_template_zipfile)
+
+        // The replicate metadata channel holds an empty placeholder file when no metadata was
+        // supplied and the run is not a PDC study, so it is only uploaded when real metadata
+        // exists. On PDC runs this is the annotations CSV generated from the study metadata.
+        if(params.replicate_metadata != null || params.pdc.study_id != null) {
+            panorama_input_files = panorama_input_files.concat(replicate_metadata)
+        }
+
+        // PDC inputs the user authored, which shape the run but are not otherwise uploaded.
+        // pdc.metadata_tsv is only included when the user supplied one; when it is null the
+        // study metadata is fetched from PDC and is reproducible from pdc.study_id alone.
+        ['pdc.batch_file': params.pdc.batch_file,
+         'pdc.gene_level_data': params.pdc.gene_level_data,
+         'pdc.metadata_tsv': params.pdc.metadata_tsv].each { label, value ->
+            if(value != null) {
+                panorama_input_files = panorama_input_files.concat(
+                    Channel.value(resolve_user_path(value, label)))
+            }
+        }
+
         panorama_upload_results(
             params.panorama.upload_url,
             dia_search.out.all_search_files,
             search_engine,
             skyline.out.final_skyline_file,
             all_mzml_ch,
-            dia_search.out.search_fasta,
-            spectral_library,
+            panorama_input_files,
             config_file,
             run_details_file,
             combine_file_hashes.out.output_file_hashes,
-            skyr_file_ch,
             skyline.out.skyline_reports_ch,
             use_batch_mode,
             aws_secret_id

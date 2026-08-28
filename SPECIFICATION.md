@@ -588,16 +588,27 @@ Important accuracy note:
 
 For full analysis runs, Panorama upload includes:
 
-- converted mzML files from `all_mzml_ch`
-- run details
-- one config file captured by `workflow.configFiles[1]`
-- the search FASTA channel used by the active search / Skyline branch
-- the user or Carafe spectral library channel
-- search files
-- final Skyline documents
-- `.skyr` input files
-- Skyline report outputs
-- combined file-hash table
+- at the run root: run details, the combined file-hash table, and one config file captured by
+  `workflow.configFiles[1]`
+- `input-files/`: the set assembled by `main.nf` under `if(params.panorama.upload)` -- the
+  user-supplied FASTAs (`params.fasta` and `params.skyline.fasta`, deduplicated), the user or
+  Carafe spectral library, `.skyr` files, the Skyline template, the replicate metadata, and any
+  user-authored PDC inputs (`pdc.batch_file`, `pdc.gene_level_data`, `pdc.metadata_tsv`)
+- `results/msconvert[/<batch>]/`: converted mzML files from `all_mzml_ch`
+- `results/<search_engine>/`: search files
+- `results/skyline/`: final Skyline documents
+- `results/skyline_reports/`: Skyline report outputs
+
+The `input-files/` set is intended to be everything needed to reproduce the run. Two details
+govern it:
+
+- the replicate metadata channel carries an empty placeholder file when no metadata was
+  supplied and the run is not a PDC study, so it is uploaded only when
+  `params.replicate_metadata` or `params.pdc.study_id` is set. On PDC runs the uploaded file is
+  the annotations CSV generated from the study metadata, not a user-supplied file
+- the search FASTA is deliberately not the source for `input-files/`. On Cascadia runs it is a
+  search product and is already uploaded under `results/cascadia/`; the user-supplied FASTAs are
+  taken from `get_input_files` instead
 
 For `msconvert_only` runs, the upload path is smaller and only includes the resolved MS outputs,
 run details, and the selected config file.
@@ -606,8 +617,10 @@ If `params.panorama.import_skyline` is true, Panorama import runs only after fil
 
 Important accuracy note:
 
-- QC reports, batch reports, gene reports, replicate metadata, and Skyline template files are
-  not part of Panorama upload in the current implementation
+- QC reports, batch reports, and gene reports are not part of Panorama upload in the current
+  implementation
+- `IMPORT_SKYLINE` writes `panorama-import-skyline.stdout` / `.stderr` under fixed names, so in
+  batch mode the per-document logs overwrite each other in the local `panorama/` directory
 
 ## Configuration Model
 

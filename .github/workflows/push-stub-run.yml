@@ -28,6 +28,8 @@ jobs:
           'test-msconvert-only-local.config',
           'test-diann-multi-batch-metadata.config',
           'test-diann-minimize.config',
+          'test-diann-panorama-upload.config',
+          'test-diann-pdc-upload.config',
           'test-diann-pdc-batches.config',
           'test-diann-pdc-batches-messy.config',
           'test-diann-batch-multidir.config',

@@ -12,12 +12,10 @@ workflow panorama_upload_results {
         search_engine
         final_skyline_file
         mzml_file_ch
-        fasta_file
-        user_supplied_spectral_lib
+        input_file_ch           // everything needed to reproduce the run; see main.nf
         nextflow_config_file
         nextflow_run_details
         output_file_hashes
-        skyr_file_ch
         skyline_report_ch
         use_batch_mode
         aws_secret_id
@@ -35,11 +33,9 @@ workflow panorama_upload_results {
             }.concat(nextflow_run_details.map { path -> tuple(path, upload_webdav_url) })
             .concat(output_file_hashes.map { path -> tuple(path, upload_webdav_url) })
             .concat(Channel.fromPath(nextflow_config_file).map { path -> tuple(path, upload_webdav_url) })
-            .concat(fasta_file.map { path -> tuple(path, upload_webdav_url + "/input-files") })
-            .concat(user_supplied_spectral_lib.map { path -> tuple(path, upload_webdav_url + "/input-files") })
+            .concat(input_file_ch.map { path -> tuple(path, upload_webdav_url + "/input-files") })
             .concat(all_search_file_ch.map { path -> tuple(path, upload_webdav_url + "/results/${search_engine}") })
             .concat(final_skyline_file.map { path -> tuple(path, upload_webdav_url + "/results/skyline") })
-            .concat(skyr_file_ch.map { path -> tuple(path, upload_webdav_url + "/input-files") })
             .concat(skyline_report_ch.map { path -> tuple(path, upload_webdav_url + "/results/skyline_reports") })
             .set { all_file_upload_ch }
 
