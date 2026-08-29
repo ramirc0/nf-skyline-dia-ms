@@ -311,8 +311,11 @@ process IMPORT_SKYLINE {
         val aws_secret_id
 
     output:
-        path("panorama-import-skyline.stdout"), emit: stdout
-        path("panorama-import-skyline.stderr"), emit: stderr
+        // Named after the document being imported: in batch mode this process runs once per
+        // document and every task publishes into the same directory, so a fixed name would
+        // mean only one batch's log survives. Matches UPLOAD_FILE's naming.
+        path("panorama-import-${skyline_filename}.stdout"), emit: stdout
+        path("panorama-import-${skyline_filename}.stderr"), emit: stderr
 
     script:
         """
@@ -325,12 +328,12 @@ process IMPORT_SKYLINE {
             -w "${skyline_web_dav_dir_url}" \
             -p "${getPanoramaProjectURLForWebDavDirectory(skyline_web_dav_dir_url)}" \
             -k \$PANORAMA_API_KEY \
-            > >(tee "panorama-import-skyline.stdout") 2> >(tee "panorama-import-skyline.stderr" >&2)
+            > >(tee "panorama-import-${skyline_filename}.stdout") 2> >(tee "panorama-import-${skyline_filename}.stderr" >&2)
         echo "Done!" # Needed for proper exit
         """
 
     stub:
-    '''
-    touch panorama-import-skyline.stdout panorama-import-skyline.stderr
-    '''
+    """
+    touch "panorama-import-${skyline_filename}.stdout" "panorama-import-${skyline_filename}.stderr"
+    """
 }
