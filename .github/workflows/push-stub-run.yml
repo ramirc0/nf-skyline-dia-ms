@@ -54,6 +54,11 @@ jobs:
         echo "Installing Nextflow ${NXF_VER}:"
         curl -s https://get.nextflow.io | bash
         chmod +x nextflow
+        # UPLOAD_FILE and IMPORT_SKYLINE declare `secret 'PANORAMA_API_KEY'`. Nextflow requires
+        # a declared secret to exist before it will run the task, even under -stub-run where the
+        # command that would use it never executes. Set a placeholder so the panorama.upload
+        # configs can run; the value is never read.
+        ./nextflow secrets set PANORAMA_API_KEY 'ci-stub-not-a-real-key'
         echo "Running Nextflow stub with config: ${{ matrix.config }}"
         ./nextflow run . -stub-run -c test-resources/${{ matrix.config }} -c test-resources/ci.config
 
