@@ -280,10 +280,12 @@ Inside that folder:
 - ``results/<search engine>/`` - The output of the search engine that ran.
 - ``results/skyline/`` - The final Skyline document, or one per batch in multi-batch mode.
 - ``results/skyline_reports/`` - The TSV output of any ``.skyr`` reports that were run.
+- ``results/gene_reports/`` - The gene-level quantification tables, on PDC runs where
+  ``pdc.gene_level_data`` was supplied.
 
     .. note::
-        QC reports, batch reports, and gene reports are **not** uploaded. They are available only
-        in the local results directory described above.
+        QC reports and batch reports are **not** uploaded. They are available only in the local
+        results directory described above.
 
 When ``msconvert_only`` is ``true``, the upload is much smaller: the resolved MS files go to
 ``results/msconvert/`` (with no per-batch subdirectory), alongside the run details and the

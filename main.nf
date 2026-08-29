@@ -371,6 +371,7 @@ workflow {
             run_details_file,
             combine_file_hashes.out.output_file_hashes,
             skyline.out.skyline_reports_ch,
+            skyline.out.gene_reports,
             use_batch_mode,
             aws_secret_id
         )

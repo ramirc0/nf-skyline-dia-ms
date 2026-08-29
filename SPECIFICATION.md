@@ -608,6 +608,7 @@ For full analysis runs, Panorama upload includes:
 - `results/<search_engine>/`: search files
 - `results/skyline/`: final Skyline documents
 - `results/skyline_reports/`: Skyline report outputs
+- `results/gene_reports/`: PDC gene-level tables, when `pdc.gene_level_data` is set
 
 `subworkflows/panorama_upload.nf` also writes `panorama_uploads.tsv` (file name, destination URL)
 to the local `panorama/` results directory, from the same channel that feeds `UPLOAD_FILE`. It is
@@ -636,8 +637,7 @@ If `params.panorama.import_skyline` is true, Panorama import runs only after fil
 
 Important accuracy note:
 
-- QC reports, batch reports, and gene reports are not part of Panorama upload in the current
-  implementation
+- QC reports and batch reports are not part of Panorama upload in the current implementation
 - `IMPORT_SKYLINE` writes `panorama-import-skyline.stdout` / `.stderr` under fixed names, so in
   batch mode the per-document logs overwrite each other in the local `panorama/` directory
 

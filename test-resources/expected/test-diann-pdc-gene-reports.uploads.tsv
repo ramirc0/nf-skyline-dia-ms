@@ -8,6 +8,7 @@ quant.parquet	<RUN>/results/diann
 quant.parquet.skyline.speclib	<RUN>/results/diann
 stub.stderr	<RUN>/results/diann
 stub.stdout	<RUN>/results/diann
+stub.tsv	<RUN>/results/gene_reports
 stub_pdc_file1.mzML	<RUN>/results/msconvert
 stub_pdc_file1.quant	<RUN>/results/diann
 stub_pdc_file2.mzML	<RUN>/results/msconvert

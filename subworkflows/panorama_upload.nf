@@ -30,6 +30,7 @@ workflow panorama_upload_results {
         nextflow_run_details
         output_file_hashes
         skyline_report_ch
+        gene_report_ch
         use_batch_mode
         aws_secret_id
 
@@ -50,6 +51,7 @@ workflow panorama_upload_results {
             .concat(all_search_file_ch.map { path -> tuple(path, upload_webdav_url + "/results/${search_engine}") })
             .concat(final_skyline_file.map { path -> tuple(path, upload_webdav_url + "/results/skyline") })
             .concat(skyline_report_ch.map { path -> tuple(path, upload_webdav_url + "/results/skyline_reports") })
+            .concat(gene_report_ch.map { path -> tuple(path, upload_webdav_url + "/results/gene_reports") })
             .set { all_file_upload_ch }
 
         upload_manifest = write_upload_manifest(all_file_upload_ch)
