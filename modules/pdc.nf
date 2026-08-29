@@ -57,6 +57,9 @@ process GET_STUDY_METADATA {
 }
 
 process METADATA_TO_SKY_ANNOTATIONS {
+    // Published to the same directory as GET_STUDY_METADATA's annotations so that the two
+    // metadata branches leave the same footprint in the results.
+    publishDir "${params.result_dir}/pdc", failOnError: true, mode: 'copy'
     label 'process_low_constant'
     container params.images.pdc_client
 

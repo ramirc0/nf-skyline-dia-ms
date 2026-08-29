@@ -14,18 +14,26 @@ workflow get_pdc_study_metadata {
             metadata = GET_STUDY_METADATA.out.metadata
             annotations_csv = GET_STUDY_METADATA.out.skyline_annotations
             study_name = GET_STUDY_METADATA.out.study_name
+            pdc_client_version = GET_STUDY_METADATA.out.version
+            pdc_files = metadata.concat(annotations_csv, pdc_client_version)
         } else {
             metadata_file = resolve_user_path(params.pdc.metadata_tsv, 'pdc.metadata_tsv')
             metadata = Channel.fromPath(metadata_file)
             METADATA_TO_SKY_ANNOTATIONS(metadata_file)
             annotations_csv = METADATA_TO_SKY_ANNOTATIONS.out.skyline_annotations
             study_name = params.pdc.study_name == null ? params.pdc.study_id : params.pdc.study_name
+            // The metadata here is the user's own input file, not something this run produced,
+            // so only the derived annotations belong in the pdc results directory.
+            pdc_client_version = Channel.empty()
+            pdc_files = annotations_csv
         }
 
     emit:
         study_name
         metadata
         annotations_csv
+        pdc_client_version
+        pdc_files           // everything published to <result_dir>/pdc
 }
 
 // Random sample helper. Defined at top-level (not inside workflow `main:`) so the strict
@@ -248,6 +256,8 @@ workflow get_pdc_files {
         study_name = get_pdc_study_metadata.out.study_name
         metadata = metadata_ch
         annotations_csv = get_pdc_study_metadata.out.annotations_csv
+        pdc_client_version = get_pdc_study_metadata.out.pdc_client_version
+        pdc_files = get_pdc_study_metadata.out.pdc_files
         wide_ms_file_ch
         converted_mzml_ch
         carafe_pdc_ms_file_ch

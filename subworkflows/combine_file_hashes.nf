@@ -30,6 +30,7 @@ workflow combine_file_hashes {
 
         qc_report_files
         gene_reports
+        pdc_files
 
         workflow_versions
 
@@ -68,6 +69,7 @@ workflow combine_file_hashes {
                 skyline_reports.map{ tuple(it.name, it, params.output_directories.skyline.reports, it.size()) },
                 qc_report_files.map{ tuple(it.name, it, params.output_directories.qc_report, it.size()) },
                 gene_reports.map{ tuple(it.name, it, params.output_directories.gene_reports, it.size()) },
+                pdc_files.map{ tuple(it.name, it, "${params.result_dir}/pdc", it.size()) },
                 workflow_versions.map{ tuple(it.name, it, params.result_dir, it.size()) }
             )
 

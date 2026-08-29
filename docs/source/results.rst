@@ -149,6 +149,17 @@ In addition the following files will be present:
 - ``combined.fasta`` - A FASTA format file containing the peptides identified by Cascadia.
 - ``lib.blib`` - A spectral library containing the Cascadia search results.
 
+``pdc`` Subdirectory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Created only for PDC runs (that is, when ``pdc.study_id`` is set). It holds the study metadata that drove the run:
+
+- ``study_id_flat.json`` - The flattened PDC study metadata: one entry per file in the study with its download URL, file name, MD5 hash, and size, together with the sample metadata. Present only when ``pdc.metadata_tsv`` is not set, i.e. when the metadata was fetched from PDC.
+- ``study_id_skyline_annotations.csv`` - The Skyline replicate annotations derived from the study metadata, which are imported into the Skyline document. This file is named ``skyline_annotations.csv`` when you supplied ``pdc.metadata_tsv``.
+- ``pdc_client_version.txt`` - The version of ``PDC_client`` used to fetch the metadata. Present only when the metadata was fetched from PDC.
+
+    .. note::
+        A PDC study's file set can change over time, so ``study_id_flat.json`` is the record that pins a run to the exact files it analyzed. It is listed in ``file_checksums.tsv`` and, when ``panorama.upload`` is set, uploaded to ``input-files`` on PanoramaWeb.
+
 ``skyline/add-lib`` Subdirectory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The first step to creating the final Skyline document is importing the results of EncyclopeDIA into the Skyline template document. This
@@ -259,7 +270,8 @@ Inside that folder:
 - ``input-files/`` - The inputs needed to reproduce the run: the FASTA file (and the separate
   Skyline FASTA, if ``skyline.fasta`` was set), the spectral library, the Skyline template
   document, any ``.skyr`` files, and the replicate metadata. On PDC runs this holds the
-  annotations generated from the study metadata, along with ``pdc.batch_file``,
+  annotations generated from the study metadata and the study's file manifest
+  (``study_id_flat.json``, see the ``pdc`` subdirectory above), along with ``pdc.batch_file``,
   ``pdc.metadata_tsv``, and ``pdc.gene_level_data`` if you supplied them.
 - ``results/msconvert/`` - mzML files produced by msconvert, in a subdirectory per batch when
   running in multi-batch mode. Files that did not need conversion are not uploaded, so this

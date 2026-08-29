@@ -30,6 +30,7 @@ jobs:
           'test-diann-minimize.config',
           'test-diann-panorama-upload.config',
           'test-diann-pdc-upload.config',
+          'test-diann-pdc-gene-reports.config',
           'test-diann-upload-no-metadata.config',
           'test-diann-upload-import-skyline.config',
           'test-diann-upload-input-files.config',

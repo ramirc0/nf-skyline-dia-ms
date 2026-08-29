@@ -129,6 +129,9 @@ workflow {
         wide_ms_file_ch = get_pdc_files.out.wide_ms_file_ch
         wide_mzml_ch = get_pdc_files.out.converted_mzml_ch
         pdc_study_name = get_pdc_files.out.study_name
+        pdc_result_files = get_pdc_files.out.pdc_files
+        pdc_study_metadata = get_pdc_files.out.metadata
+        pdc_client_version = get_pdc_files.out.pdc_client_version
         batch_name_list = pdc_batch_map == null ? [null] : pdc_batch_map.values().toList().unique().sort()
         if(params.skyline.document_name == 'final') {
             skyline_document_name = pdc_study_name
@@ -151,6 +154,9 @@ workflow {
         wide_mzml_ch = get_wide_ms_files.out.converted_mzml_ch
         quant_spectra_file_json = get_wide_ms_files.out.file_json
         pdc_study_name = null
+        pdc_result_files = Channel.empty()
+        pdc_study_metadata = Channel.empty()
+        pdc_client_version = Channel.empty()
         batch_name_list = use_batch_mode ? quant_spectra_dir.collect{ k, v -> k } : [null]
         skyline_document_name = Channel.value(params.skyline.document_name)
     }
@@ -276,10 +282,17 @@ workflow {
         batch_name_list
     )
 
+    // Both are emitted by the skyline workflow but were never read back here, so they stayed
+    // null from their declaration above and Channel.concat silently dropped them -- and
+    // everything after them -- from the run details (audit finding C1).
+    proteowizard_version = skyline.out.proteowizard_version
+    dia_qc_version = skyline.out.dia_qc_version
+
     version_files = search_engine_version
         .concat(proteowizard_version,
                 dia_qc_version,
-                carafe_version)
+                carafe_version,
+                pdc_client_version)
         .splitText()
 
     input_files = fasta
@@ -302,6 +315,7 @@ workflow {
         skyline.out.skyline_reports_ch,
         skyline.out.qc_report_files,
         skyline.out.gene_reports,
+        pdc_result_files,
         run_details_file
     )
 
@@ -324,6 +338,14 @@ workflow {
         // exists. On PDC runs this is the annotations CSV generated from the study metadata.
         if(params.replicate_metadata != null || params.pdc.study_id != null) {
             panorama_input_files = panorama_input_files.concat(replicate_metadata)
+        }
+
+        // Study metadata fetched from the PDC API is the record of which files this run
+        // downloaded, and a study's file set can change over time. It is published locally
+        // only, so without this it is uploaded nowhere. When pdc.metadata_tsv was supplied
+        // instead, that file is the metadata and is uploaded just below.
+        if(params.pdc.study_id != null && params.pdc.metadata_tsv == null) {
+            panorama_input_files = panorama_input_files.concat(pdc_study_metadata)
         }
 
         // PDC inputs the user authored, which shape the run but are not otherwise uploaded.

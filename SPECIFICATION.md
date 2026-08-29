@@ -559,8 +559,13 @@ PDC gene-report behavior:
 - session ID
 - command line
 - input-file names gathered by `main.nf`
-- parsed tool versions
+- parsed tool versions, from every version channel: search engine, Skyline / msconvert,
+  DIA-QC, Carafe, and PDC_client
 - configured container image names
+
+`Channel.concat` drops every argument after a null one, so a version variable that is declared
+but never assigned silently removes all the versions after it. Keep every entry in the
+`version_files` concat a real channel (`Channel.empty()` when the step did not run).
 
 ### Combined file hashes
 
@@ -576,6 +581,8 @@ Important accuracy note:
 - coverage depends on what each search branch includes in its `search_file_stats`
 - the final Skyline document is always covered, and its recorded path is
   `skyline/final_documents` for every branch
+- PDC runs contribute the contents of `<result_dir>/pdc` (study metadata, derived Skyline
+  annotations, and the PDC_client version) via `get_pdc_files.out.pdc_files`
 - currently omitted or inconsistently covered artifacts include:
   - batch-report outputs
   - some search outputs such as final EncyclopeDIA combined outputs and Cascadia `.blib`
@@ -593,7 +600,10 @@ For full analysis runs, Panorama upload includes:
 - `input-files/`: the set assembled by `main.nf` under `if(params.panorama.upload)` -- the
   user-supplied FASTAs (`params.fasta` and `params.skyline.fasta`, deduplicated), the user or
   Carafe spectral library, `.skyr` files, the Skyline template, the replicate metadata, and any
-  user-authored PDC inputs (`pdc.batch_file`, `pdc.gene_level_data`, `pdc.metadata_tsv`)
+  user-authored PDC inputs (`pdc.batch_file`, `pdc.gene_level_data`, `pdc.metadata_tsv`). On PDC
+  runs where the metadata was fetched from the API rather than supplied, the study's flattened
+  metadata JSON is included as well: a study's file set can change over time, and that file is
+  the only record of which files this run actually downloaded
 - `results/msconvert[/<batch>]/`: converted mzML files from `all_mzml_ch`
 - `results/<search_engine>/`: search files
 - `results/skyline/`: final Skyline documents
