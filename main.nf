@@ -114,8 +114,9 @@ workflow {
 
     // msconvert_only exists to run msconvert; use_vendor_raw skips it, leaving nothing to do.
     if(params.msconvert_only && params.use_vendor_raw) {
-        error "Parameter `msconvert_only` requires msconvert to run, but `use_vendor_raw` is true.\n" +
-              "  No files would be converted. Set use_vendor_raw = false."
+        error "Parameter `msconvert_only` requires `use_vendor_raw` to be false.\n" +
+              "  msconvert_only converts spectra with msconvert and exits, but use_vendor_raw\n" +
+              "  skips msconvert, so no files would be converted."
     }
 
     // Fail fast on Carafe param-combination errors before any process runs.

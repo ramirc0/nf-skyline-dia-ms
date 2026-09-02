@@ -96,7 +96,7 @@ jobs:
           - config: 'test-vendor-raw-demultiplex.config'
             expect: 'Parameter `msconvert.do_demultiplex` cannot be true when `use_vendor_raw` is true'
           - config: 'test-msconvert-only-vendor-raw.config'
-            expect: 'Parameter `msconvert_only` requires msconvert to run'
+            expect: 'Parameter `msconvert_only` requires `use_vendor_raw` to be false'
 
     steps:
     - name: Checkout repository
