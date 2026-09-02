@@ -93,6 +93,10 @@ jobs:
             expect: 'Parameter `pdc.batch_file` is set but empty'
           - config: 'test-batch-name-duplicate.config'
             expect: 'Parameter `quant_spectra_dir` contains the batch name'
+          - config: 'test-vendor-raw-demultiplex.config'
+            expect: 'Parameter `msconvert.do_demultiplex` cannot be true when `use_vendor_raw` is true'
+          - config: 'test-msconvert-only-vendor-raw.config'
+            expect: 'Parameter `msconvert_only` requires msconvert to run'
 
     steps:
     - name: Checkout repository

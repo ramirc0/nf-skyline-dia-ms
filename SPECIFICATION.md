@@ -92,6 +92,14 @@ The implementation standardizes:
 - maps deprecated Skyline params to nested `params.skyline.*`
 - normalizes `search_engine` for local checks
 - rejects `panorama.import_skyline` unless Panorama upload is enabled and Skyline is not skipped
+- rejects `msconvert.do_demultiplex` when `use_vendor_raw` is set. Demultiplexing overlapping
+  (staggered) DIA windows is done by msconvert's `demultiplex` filter, but `use_vendor_raw`
+  skips msconvert and hands the raw files to DIA-NN and Skyline, neither of which demultiplexes
+  them. Without this guard the run completed normally and silently quantified
+  non-demultiplexed spectra. Checked before the `msconvert_only` guard below, so a config
+  setting all three flags reports the conflict that changes results.
+- rejects `use_vendor_raw` when `msconvert_only` is set, since skipping msconvert leaves an
+  `msconvert_only` run with nothing to convert
 
 Relevant files:
 
@@ -266,8 +274,9 @@ Important accuracy note:
 - the Panorama upload helper is named `panorama_upload_mzmls`
 - in this branch, `main.nf` passes `all_ms_file_ch`, not `all_mzml_ch`
 - that means the uploaded files are the resolved downstream MS inputs, which are usually
-  mzMLs, but may be vendor RAW files or extracted Bruker `.d` directories if those modes
-  were selected
+  mzMLs, but may be extracted Bruker `.d` directories if that mode was selected. They can no
+  longer be vendor RAW files: `use_vendor_raw` with `msconvert_only` is rejected at startup
+  (see § 1), because it would skip the only step this mode exists to run.
 
 ### 7. Auxiliary input resolution
 
@@ -767,6 +776,10 @@ configurations, including:
 - Carafe multi-file
 - no-search mode
 - `msconvert_only`
+
+A companion `negative-stub-run` job covers configs that must fail fast, asserting both a
+non-zero exit and an expected message fragment. It includes `use_vendor_raw` combined with
+`msconvert.do_demultiplex`, and `use_vendor_raw` combined with `msconvert_only`.
 
 This validates branching and workflow wiring, not scientific correctness.
 

@@ -16,7 +16,7 @@ Supported input file formats
 The workflow accepts the following MS input file formats for ``quant_spectra_dir`` and ``chromatogram_library_spectra_dir``:
 
 * ``.mzML`` — supported by all search engines.
-* ``.raw`` (Thermo) — supported by all search engines. Files are converted to mzML using *msconvert* unless ``use_vendor_raw`` is enabled.
+* ``.raw`` (Thermo) — supported by all search engines. Files are converted to mzML using *msconvert* unless ``use_vendor_raw`` is enabled. If your DIA windows overlap (staggered windows), the files must be converted so *msconvert* can demultiplex them; ``use_vendor_raw`` cannot be used in that case.
 * ``.d.zip`` (Bruker) — a zipped Bruker ``.d`` directory. The workflow extracts these to ``.d`` directories rather than running *msconvert*. **Bruker ``.d.zip`` input is only supported when ``search_engine`` is ``'diann'`` or ``null`` (no-search, Skyline-only).** EncyclopeDIA and Cascadia do not read Bruker data.
 * ``.d`` (Bruker) — a pre-extracted Bruker ``.d`` directory (match with a ``*.d`` glob). These are passed straight to DIA-NN or Skyline with no extraction or *msconvert* step. **Pre-extracted ``.d`` directories are only supported for local filesystem inputs, not Panorama, Panorama Public, or PDC** — use ``.d.zip`` archives for Bruker data hosted on those sources. The same per-engine restrictions as ``.d.zip`` apply (``'diann'`` or ``null`` only).
 
@@ -100,6 +100,7 @@ The workflow is made up of the following software components, each may be run mu
 *  **msconvert** (https://proteowizard.sourceforge.io/)
 
    If users supply RAW files as input, they will be converted to mzML using *msconvert* (unless ``use_vendor_raw`` is set).
+   *msconvert* is also where overlapping (staggered) DIA windows are demultiplexed, via ``msconvert.do_demultiplex``. Because DIA-NN and Skyline read vendor raw files directly and do not demultiplex them, ``use_vendor_raw`` and ``msconvert.do_demultiplex`` cannot both be enabled.
    Bruker ``.d.zip`` inputs bypass *msconvert* and are extracted to ``.d`` directories that are passed directly to DIA-NN or Skyline. The extracted ``.d`` directories are cached in ``panorama_cache_directory`` so the extraction is skipped on subsequent runs.
 
 *  **EncyclopeDIA** (http://www.searlelab.org/software/encyclopedia/index.html)

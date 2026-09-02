@@ -91,6 +91,8 @@ The ``params`` Section
    * -
      - ``use_vendor_raw``
      - If supported by the ``search_engine``, skip the ``MSCONVERT`` step to generate mzMLs and use vendor raw files for the search and to generate the Skyline document.
+       This cannot be used with overlapping (staggered) DIA windows: demultiplexing them requires *msconvert*, but the vendor raw files are read directly by DIA-NN and Skyline, neither of which demultiplexes them.
+       ``msconvert.do_demultiplex`` must therefore be ``false`` when this is ``true``, and this must be ``false`` when ``msconvert_only`` is ``true``.
        Default is ``false``.
    * -
      - ``vendor_raw_copy``
@@ -198,7 +200,8 @@ The ``params`` Section
    * - Parameter Name
      - Description
    * - ``msconvert.do_demultiplex``
-     - If starting with raw files, this is the value used by ``msconvert`` for the ``do_demultiplex`` parameter. Default: ``true``.
+     - If starting with raw files, this is the value used by ``msconvert`` for the ``do_demultiplex`` parameter. Set this to ``true`` if your DIA windows overlap (staggered windows).
+       Because demultiplexing is performed by *msconvert*, this must be ``false`` when ``use_vendor_raw`` is ``true``. Default: ``true``.
    * - ``msconvert.do_simasspectra``
      - If starting with raw files, this is the value used by ``msconvert`` for the ``do_simasspectra`` parameter. Default: ``true``.
    * - ``msconvert.mz_shift_ppm``

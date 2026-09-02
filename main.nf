@@ -99,6 +99,25 @@ workflow {
         }
     }
 
+    // Demultiplexing overlapping DIA windows requires msconvert. use_vendor_raw skips
+    // msconvert and hands the raw files to DIA-NN and Skyline, neither of which
+    // demultiplexes them, so the two settings cannot both be set. Checked before the
+    // msconvert_only guard below so a config with all three flags reports the conflict
+    // that changes results, not the no-op one.
+    if(params.use_vendor_raw && params.msconvert.do_demultiplex) {
+        error "Parameter `msconvert.do_demultiplex` cannot be true when `use_vendor_raw` is true.\n" +
+              "  Demultiplexing overlapping DIA windows requires msconvert, but use_vendor_raw feeds\n" +
+              "  the vendor raw files directly to DIA-NN and Skyline, neither of which demultiplexes them.\n" +
+              "  - If your DIA windows overlap (staggered windows), set use_vendor_raw = false.\n" +
+              "  - If they do not overlap, set msconvert.do_demultiplex = false."
+    }
+
+    // msconvert_only exists to run msconvert; use_vendor_raw skips it, leaving nothing to do.
+    if(params.msconvert_only && params.use_vendor_raw) {
+        error "Parameter `msconvert_only` requires msconvert to run, but `use_vendor_raw` is true.\n" +
+              "  No files would be converted. Set use_vendor_raw = false."
+    }
+
     // Fail fast on Carafe param-combination errors before any process runs.
     carafe_enabled()
 
